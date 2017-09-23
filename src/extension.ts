@@ -1,46 +1,66 @@
 'use strict';
-import {commands, window, ExtensionContext, workspace, Uri} from 'vscode';
+/**
+ * NOTE: 
+ * This is my first VSCode extension. Happy for any feedback
+ * This is my first time using TypeScript. Again, happy for any feedback.
+ */
+import { commands, window, ExtensionContext, workspace, Uri } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import {denodeify} from 'q';
 
+interface QuickPickItem { // Add props to QPI without TS complaining.
+    label: string,
+    description: string,
+    path?: string,
+    isFolder?: boolean
+}
+
 const readdir = denodeify(fs.readdir);
 const fsStat = denodeify(fs.stat);
-
-const cmd  ={
+const cmd = {
     newFile: '$ Create new file'
 };
 
 const selectFile = async (startDir: string) => {
-    const files = await readdir(startDir);
+    const contents: string[] = await readdir(startDir);
+    const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
+        const stats = (await fsStat(path.join(startDir, f)));
+        const isFolder = stats.isDirectory();
+        const description = isFolder ? 'open this' : '';
+        const label = f + isFolder ? '/' : '';
+
+        return {
+            label,
+            description,
+            isFolder,
+            path: path.join(startDir, f)
+        };
+    }));
+
     const cmds = [
         {
             label: cmd.newFile,
-            description: `Create a new file in ${startDir}` // TODO: remove path to project root
+            description: `Create a new file in ${startDir}`
         }, {
             label: '../',
             description: `move up a folder`
         }
     ];
 
-    let selection = await window.showQuickPick([
-        ...cmds, // show commands on top
-        ...files.map(f => ({
-            label: f
-        }))
-    ]);
+    const selection: QuickPickItem = await window.showQuickPick([ ...cmds, ...items ]);
 
     if (selection === undefined) {
         return;
     }
 
-    let fileName = selection.label;
+    if (selection.isFolder) {
+        return selectFile(selection.path); 
+    }
 
-    //
     // Create new File
-    //
-    if (fileName === cmd.newFile) {
-        fileName = await window.showInputBox({
+    if (selection.label === cmd.newFile) {
+        const fileName = await window.showInputBox({
             prompt: 'Enter the name of the new file'
         });
 
@@ -49,30 +69,20 @@ const selectFile = async (startDir: string) => {
         }) : undefined;
     } 
 
-    //
     // Move up one folder
-    //
-    if (fileName === '../') {
+    if (selection.label === '../') {
         return selectFile(path.resolve(startDir, '..'));
     }
 
-    const filePath = path.join(startDir, fileName);
-    const stats = (await fsStat(filePath)) as fs.Stats;
-
-    // recurse into directory
-    if (stats.isDirectory()) {
-        return selectFile(filePath);
-    }
-
-    return filePath;
+    return selection.path;
 }
 
 export function activate(context: ExtensionContext) {
-    if (!window.activeTextEditor) {
-        return; // TODO: start at project root
-    }
-
     let disposable = commands.registerCommand('smartOpenFile.open', async () => {
+        if (!window.activeTextEditor) {
+            return;  // no file open
+        }
+
         try {
             const currentDir = path.dirname(window.activeTextEditor.document.fileName);
             const openPath = await selectFile(currentDir);
@@ -84,10 +94,10 @@ export function activate(context: ExtensionContext) {
             const doc = await workspace.openTextDocument(openPath);
 
             if (!doc) {
-                throw new Error('could not open file');
+                throw new Error(`could not open file ${doc}`);
             }
 
-            const editor = window.showTextDocument(doc);
+            window.showTextDocument(doc);
         } catch (err) {
             if (err.message) {
                 window.showErrorMessage(err.message);
