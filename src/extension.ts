@@ -27,8 +27,8 @@ const selectFile = async (startDir: string) => {
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
         const stats = (await fsStat(path.join(startDir, f)));
         const isFolder = stats.isDirectory();
-        const description = isFolder ? 'open this' : '';
-        const label = f + isFolder ? '/' : '';
+        const description = isFolder ? 'browse this folder' : '';
+        const label = f + (isFolder ? '/' : '');
 
         return {
             label,
