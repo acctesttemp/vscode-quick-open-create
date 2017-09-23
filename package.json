@@ -1,24 +1,31 @@
 {
-    "name": "smartopenfile",
-    "displayName": "smartOpenFile",
-    "description": "Open files smarter. Quick access to siblings.",
-    "version": "0.0.1",
+    "name": "vscode-quick-open-create",
+    "displayName": "quick-open-create",
+    "description": "quick-open-create makes it easy to open and create new files relative to the currently open one and browsing the directories without leaving the keyboard.",
+    "version": "0.1.0",
     "publisher": "nocksock",
     "engines": {
         "vscode": "^1.16.0"
+    },
+    "bugs": {
+        "url": "https://github.com/nocksock/vscode-quick-open-create/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/nocksock/vscode-quick-open-create.git"
     },
     "categories": [
         "Other"
     ],
     "activationEvents": [
-        "onCommand:smartOpenFile.open"
+        "onCommand:quickOpenCreate.open"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [
             {
-                "command": "smartOpenFile.open",
-                "title": "Smart Open File: Open File"
+                "command": "quickOpenCreate.open",
+                "title": "Quick Open Create: Open"
             }
         ]
     },

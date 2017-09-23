@@ -78,7 +78,7 @@ const selectFile = async (startDir: string) => {
 }
 
 export function activate(context: ExtensionContext) {
-    let disposable = commands.registerCommand('smartOpenFile.open', async () => {
+    let disposable = commands.registerCommand('quickOpenCreate.open', async () => {
         if (!window.activeTextEditor) {
             return;  // no file open
         }

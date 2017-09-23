@@ -1,5 +1,6 @@
 # Change Log
-All notable changes to the "smartopenfile" extension will be documented in this file.
+
+All notable changes to the "quick-open-create" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
