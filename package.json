@@ -21,6 +21,7 @@
         "onCommand:quickOpenCreate.open"
     ],
     "main": "./out/src/extension",
+    "image": "images/icon.png",
     "contributes": {
         "commands": [
             {
