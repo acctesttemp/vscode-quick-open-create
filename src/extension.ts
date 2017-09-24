@@ -19,7 +19,8 @@ interface QuickPickItem { // Add props to QPI without TS complaining.
 const readdir = denodeify(fs.readdir);
 const fsStat = denodeify(fs.stat);
 const cmd = {
-    newFile: '$ Create new file'
+    newFile: '$(plus) Create new file',
+    moveUp: '$(file-directory) ../'
 };
 
 const selectFile = async (startDir: string) => {
@@ -27,12 +28,10 @@ const selectFile = async (startDir: string) => {
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
         const stats = (await fsStat(path.join(startDir, f)));
         const isFolder = stats.isDirectory();
-        const description = isFolder ? 'browse this folder' : '';
-        const label = f + (isFolder ? '/' : '');
+        const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
 
         return {
             label,
-            description,
             isFolder,
             path: path.join(startDir, f)
         };
@@ -43,7 +42,7 @@ const selectFile = async (startDir: string) => {
             label: cmd.newFile,
             description: `Create a new file in ${startDir}`
         }, {
-            label: '../',
+            label: cmd.moveUp,
             description: `move up a folder`
         }
     ];
@@ -70,8 +69,8 @@ const selectFile = async (startDir: string) => {
     } 
 
     // Move up one folder
-    if (selection.label === '../') {
         return selectFile(path.resolve(startDir, '..'));
+    if (selection.label === cmd.moveUp) {
     }
 
     return selection.path;
