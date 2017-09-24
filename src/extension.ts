@@ -11,7 +11,7 @@ import {denodeify} from 'q';
 
 interface QuickPickItem { // Add props to QPI without TS complaining.
     label: string,
-    description: string,
+    description?: string,
     path?: string,
     isFolder?: boolean
 }
@@ -23,7 +23,9 @@ const cmd = {
     moveUp: '$(file-directory) ../'
 };
 
-const selectFile = async (startDir: string) => {
+const selectFile = async (startDir: string, origin?: string) => {
+    if (!origin) { origin = path.basename(startDir) + path.sep }
+
     const contents: string[] = await readdir(startDir);
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
         const stats = (await fsStat(path.join(startDir, f)));
@@ -37,24 +39,26 @@ const selectFile = async (startDir: string) => {
         };
     }));
 
-    const cmds = [
+    const cmds: any[] = [
         {
             label: cmd.newFile,
-            description: `Create a new file in ${startDir}`
+            description: `Create a new file in ${path.normalize(origin)}`
         }, {
             label: cmd.moveUp,
             description: `move up a folder`
         }
     ];
 
-    const selection: QuickPickItem = await window.showQuickPick([ ...cmds, ...items ]);
+    const selection: any = await window.showQuickPick([
+        ...cmds, ...items
+    ]);
 
     if (selection === undefined) {
         return;
     }
 
     if (selection.isFolder) {
-        return selectFile(selection.path); 
+        return selectFile(selection.path, origin + path.basename(selection.path) + path.sep); 
     }
 
     // Create new File
@@ -69,8 +73,8 @@ const selectFile = async (startDir: string) => {
     } 
 
     // Move up one folder
-        return selectFile(path.resolve(startDir, '..'));
     if (selection.label === cmd.moveUp) {
+        return selectFile(path.resolve(startDir, '..'), origin + '..' + path.sep);
     }
 
     return selection.path;
