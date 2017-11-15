@@ -1,9 +1,20 @@
 # quick-open-create README
 
-## NOTE: This extension is currently work in progress. Consider this an alpha release.
+> This extension is currently work in progress. Consider this an alpha release.
 
 quick-open-create makes it easy to open and create new files relative to the
 currently open one and browsing the directories without leaving the keyboard.
+
+![overview](https://github.com/nocksock/vscode-quick-open-create/raw/master/video/overview.mp4.gif)
+
+## Pro Tip!
+
+Add this to your keybindings.json, to open siblings etc easily with `cmd+o` or whatever floats your boat.
+
+    {
+      "command": "quickOpenCreate.open",
+      "key": "cmd+o"
+    }
 
 ## Features
 
