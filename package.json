@@ -2,7 +2,7 @@
     "name": "vscode-quick-open-create",
     "displayName": "Quick Open Create",
     "description": "quick-open-create makes it easy to open and create new files relative to the currently open one and browsing the directories without leaving the keyboard.",
-    "version": "0.3.0",
+    "version": "0.5.0",
     "publisher": "nocksock",
     "engines": {
         "vscode": "^1.16.0"
@@ -46,5 +46,10 @@
     },
     "dependencies": {
         "q": "^1.5.0"
+    },
+    "__metadata": {
+        "id": "19eafc9b-6b16-4789-a773-48a59a95514e",
+        "publisherDisplayName": "nocksock",
+        "publisherId": "b727d1dc-290a-435d-babe-41ebbc50942c"
     }
 }
