@@ -18,26 +18,30 @@ interface QuickPickItem { // Add props to QPI without TS complaining.
 
 const readdir = denodeify(fs.readdir);
 const fsStat = denodeify(fs.stat);
+const ignoreExtensions: string[] = ['.png', '.jpg', '.gif']; // todo: use contributes configuration endpoint
 const cmd = {
     newFile: '$(plus) Create new file',
     moveUp: '$(file-directory) ../'
 };
+
+const onlyAllowed = f => ignoreExtensions.indexOf(`${path.extname(f.path)}`) === -1;
 
 const selectFile = async (startDir: string, origin?: string) => {
     if (!origin) { origin = path.basename(startDir) + path.sep }
 
     const contents: string[] = await readdir(startDir);
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
-        const stats = (await fsStat(path.join(startDir, f)));
+        const filePath = path.join(startDir, f);
+        const stats = (await fsStat(filePath));
         const isFolder = stats.isDirectory();
         const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
 
         return {
             label,
             isFolder,
-            path: path.join(startDir, f)
+            path: filePath
         };
-    }));
+    }))
 
     const cmds: any[] = [
         {
@@ -50,7 +54,7 @@ const selectFile = async (startDir: string, origin?: string) => {
     ];
 
     const selection: any = await window.showQuickPick([
-        ...cmds, ...items
+        ...cmds, ...items.filter(onlyAllowed)
     ]);
 
     if (selection === undefined) {

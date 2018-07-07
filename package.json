@@ -2,7 +2,7 @@
     "name": "vscode-quick-open-create",
     "displayName": "Quick Open Create",
     "description": "quick-open-create makes it easy to open and create new files relative to the currently open one and browsing the directories without leaving the keyboard.",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "publisher": "nocksock",
     "engines": {
         "vscode": "^1.16.0"
@@ -23,6 +23,22 @@
     "main": "./out/src/extension",
     "icon": "images/icon.png",
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Quick Open Create",
+            "properties": {
+                "quick-open-create.ignore": {
+                    "type": "array",
+                    "default": [
+                        "jpg",
+                        "png",
+                        "gif",
+                        "mp4"
+                    ],
+                    "description": "Ignore these file extensions"
+                }
+            }
+        },
         "commands": [
             {
                 "command": "quickOpenCreate.open",
@@ -38,14 +54,14 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
-        "typescript": "^2.5.2",
-        "vscode": "^1.1.5",
+        "@types/mocha": "^2.2.48",
+        "@types/node": "^7.0.67",
         "mocha": "^3.5.0",
-        "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "typescript": "^2.9.2",
+        "vscode": "^1.1.18"
     },
     "dependencies": {
-        "q": "^1.5.0"
+        "q": "^1.5.1"
     },
     "__metadata": {
         "id": "19eafc9b-6b16-4789-a773-48a59a95514e",
