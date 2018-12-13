@@ -86,12 +86,19 @@ const selectFile = async (startDir: string, origin?: string) => {
 
 export function activate(context: ExtensionContext) {
     let disposable = commands.registerCommand('quickOpenCreate.open', async () => {
-        if (!window.activeTextEditor) {
-            return;  // no file open
-        }
+        // if (!window.activeTextEditor) {
+        //     return;  // no file open
+        // }
 
         try {
-            const currentDir = path.dirname(window.activeTextEditor.document.fileName);
+            // const currentDir = path.dirname(window.activeTextEditor.document.fileName);
+            let currentDir = workspace.rootPath;
+            if (window.activeTextEditor){
+                currentDir = path.dirname(window.activeTextEditor.document.fileName);
+                if (currentDir === "."){
+                    currentDir = workspace.rootPath;
+                }
+            };
             const openPath = await selectFile(currentDir);
 
             if (openPath === undefined) {
