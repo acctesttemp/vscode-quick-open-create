@@ -31,22 +31,44 @@ const selectFile = async (startDir: string, origin?: string) => {
 
     const contents: string[] = await readdir(startDir);
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
-        const filePath = path.join(startDir, f);
-        const stats = (await fsStat(filePath));
-        const isFolder = stats.isDirectory();
-        const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
+        // const filePath = path.join(startDir, f);
+        // const stats = (await fsStat(filePath));
+        // const isFolder = stats.isDirectory();
+        // const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
 
-        return {
-            label,
-            isFolder,
-            path: filePath
-        };
+        // return {
+        //     label,
+        //     isFolder,
+        //     path: filePath
+        // };
+        try {
+            const filePath = path.join(startDir, f);
+            const stats = (await fsStat(filePath));
+            const isFolder = stats.isDirectory();
+            const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
+
+            return {
+                label,
+                isFolder,
+                path: filePath
+            };
+        } catch (err) {
+            const filePath = path.join(startDir, f);
+            const isFolder = false;
+            const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
+
+            return {
+                label,
+                isFolder,
+                path: filePath
+            };
+        }
     }))
 
     const cmds: any[] = [
         {
             label: cmd.newFile,
-            description: `Create a new file in ${path.normalize(origin)}`
+            description: `in ${path.normalize(origin)}`
         }, {
             label: cmd.moveUp,
             description: `move up a folder`
