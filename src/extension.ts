@@ -27,7 +27,10 @@ const cmd = {
 const onlyAllowed = f => ignoreExtensions.indexOf(`${path.extname(f.path)}`) === -1;
 
 const selectFile = async (startDir: string, origin?: string) => {
-    if (!origin) { origin = path.basename(startDir) + path.sep }
+    if (!origin) { 
+        // origin = path.basename(startDir) + path.sep;
+        origin = startDir + path.sep;
+    }
 
     const contents: string[] = await readdir(startDir);
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
