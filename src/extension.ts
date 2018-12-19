@@ -20,7 +20,7 @@ const readdir = denodeify(fs.readdir);
 const fsStat = denodeify(fs.stat);
 const ignoreExtensions: string[] = ['.png', '.jpg', '.gif']; // todo: use contributes configuration endpoint
 const cmd = {
-    newFile: '$(plus) Create new file',
+    newFile: '$(plus) New file',
     moveUp: '$(file-directory) ../'
 };
 
@@ -95,6 +95,18 @@ const selectFile = async (startDir: string, origin?: string) => {
         const fileName = await window.showInputBox({
             prompt: 'Enter the name of the new file'
         });
+
+        if (fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
+            return Uri.file(fileName).with({
+                scheme: 'untitled'
+            });
+        }
+
+        if (fileName.match(/^\.[\\/]/g)) {
+            return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
+                scheme: 'untitled'
+            }) : undefined;
+        }
 
         return fileName ? Uri.file(path.join(startDir, fileName)).with({
             scheme: 'untitled'
