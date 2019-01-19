@@ -134,7 +134,7 @@ const selectFile = async (startDir: string, origin?: string) => {
                     return selectFile(path.resolve(fileName), fileName + path.sep);
                 } else {
                     // return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
-                    return Uri.file(fileName)
+                    return Uri.file(fileName);
                 }
             } else {                
                 return Uri.file(fileName).with({
@@ -145,24 +145,24 @@ const selectFile = async (startDir: string, origin?: string) => {
 
         // Relative path to workspace: begin with ./ or .\
         if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
-            return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
-                scheme: 'untitled'
-            }) : undefined;
+            // return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
+            //     scheme: 'untitled'
+            // }) : undefined;
+            return Uri.file(path.join(workspace.rootPath, fileName));
         }
 
         // Shortcut for open current folder of active open text file.
         if (fileName === "") {
             // Sometime runtime in welcome screen or emty editor, still pass and open as "" filename ['MyComputer'] showup.
             if (window.activeTextEditor) {
-                let fName = "/select,\""+window.activeTextEditor.document.fileName+"\"";
                 spawnExplorer("file", window.activeTextEditor.document.fileName);
             }
-                
         }
         // Relative path to current open file, may overide by abs path above!
-        return fileName ? Uri.file(path.join(startDir, fileName)).with({
-            scheme: 'untitled'
-        }) : undefined;
+        // return fileName ? Uri.file(path.join(startDir, fileName)).with({
+        //     scheme: 'untitled'
+        // }) : undefined;
+        return Uri.file(path.join(startDir, fileName));
     } 
 
     // Move up one folder
@@ -212,17 +212,31 @@ const selectFile = async (startDir: string, origin?: string) => {
         
         // Relative path to workspace: begin with ./ or .\
         if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
-            spawnExplorer("folder", path.join(workspace.rootPath, fileName));
-            return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
-                scheme: 'untitled'
-            }) : undefined;
+            const filenameFB = path.join(workspace.rootPath, fileName)
+            try {
+                const stats = (await fsStat(filenameFB));
+                const isFolder = stats.isDirectory();
+                if (isFolder) {
+                    spawnExplorer("folder", filenameFB);
+                } else {
+                    spawnExplorer("file", filenameFB);
+                }
+            } catch (error) {}
+            return Uri.file(filenameFB);
         }
 
         // Relative path to current open file, may overide by abs path above!
-        spawnExplorer("folder", path.join(startDir, fileName));
-        return fileName ? Uri.file(path.join(startDir, fileName)).with({
-            scheme: 'untitled'
-        }) : undefined;
+        const filenameFB = path.join(startDir, fileName)
+        try {
+            const stats = (await fsStat(filenameFB));
+            const isFolder = stats.isDirectory();
+            if (isFolder) {
+                spawnExplorer("folder", filenameFB);
+            } else {
+                spawnExplorer("file", filenameFB);
+            }
+        } catch (error) {}
+        return Uri.file(filenameFB);
     }
 
     return selection.path;
