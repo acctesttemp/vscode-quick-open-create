@@ -125,6 +125,11 @@ const selectFile = async (startDir: string, origin?: string) => {
             }) : undefined;
         }
 
+        // Shortcut for open current folder of active open text file.
+        if (fileName === "") {
+            if (window.activeTextEditor)
+                spawn('explorer.exe', ["/select,"+window.activeTextEditor.document.fileName]);
+        }
         // Relative path to current open file, may overide by abs path above!
         return fileName ? Uri.file(path.join(startDir, fileName)).with({
             scheme: 'untitled'
