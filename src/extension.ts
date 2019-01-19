@@ -164,14 +164,16 @@ const selectFile = async (startDir: string, origin?: string) => {
                     return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
                 }
             } else {
-                // try in 10 level folder up if exist
+                // try folder up if exist
                 let dirExistLevel = path.dirname(fileName)
-                for (let index = 0; index < 10; index++) {
+                while (true) {
                     if (fs.existsSync(dirExistLevel)) {
                         spawn('explorer.exe', [dirExistLevel]);
                         break;
                     }
-                    dirExistLevel = path.dirname(dirExistLevel)
+                    const upDirExistLevel = path.dirname(dirExistLevel);
+                    if ( upDirExistLevel === dirExistLevel) { break;}
+                    dirExistLevel =upDirExistLevel;
                 };
                 return Uri.file(fileName).with({
                     scheme: 'untitled'
