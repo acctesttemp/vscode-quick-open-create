@@ -145,10 +145,20 @@ const selectFile = async (startDir: string, origin?: string) => {
 
         // Relative path to workspace: begin with ./ or .\
         if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
-            // return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
-            //     scheme: 'untitled'
-            // }) : undefined;
-            return Uri.file(path.join(workspace.rootPath, fileName));
+            const filenameFB = path.join(workspace.rootPath, fileName)
+            if (fs.existsSync(filenameFB)) {
+                const stats = (await fsStat(filenameFB));
+                const isFolder = stats.isDirectory();
+                if (isFolder) {
+                    return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
+                } else {
+                    return Uri.file(filenameFB);
+                }
+            } else {
+                return filenameFB ? Uri.file(filenameFB).with({
+                    scheme: 'untitled'
+                }) : undefined;
+            }
         }
 
         // Shortcut for open current folder of active open text file.
@@ -156,13 +166,25 @@ const selectFile = async (startDir: string, origin?: string) => {
             // Sometime runtime in welcome screen or emty editor, still pass and open as "" filename ['MyComputer'] showup.
             if (window.activeTextEditor) {
                 spawnExplorer("file", window.activeTextEditor.document.fileName);
+                return undefined;
+            }
+        } else {
+            // Relative path to current open file, may overide by abs path above!
+            const filenameFB = path.join(startDir, fileName)
+            if (fs.existsSync(filenameFB)) {
+                const stats = (await fsStat(filenameFB));
+                const isFolder = stats.isDirectory();
+                if (isFolder) {
+                    return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
+                } else {
+                    return Uri.file(filenameFB);
+                }
+            } else {
+                return filenameFB ? Uri.file(filenameFB).with({
+                    scheme: 'untitled'
+                }) : undefined;
             }
         }
-        // Relative path to current open file, may overide by abs path above!
-        // return fileName ? Uri.file(path.join(startDir, fileName)).with({
-        //     scheme: 'untitled'
-        // }) : undefined;
-        return Uri.file(path.join(startDir, fileName));
     } 
 
     // Move up one folder
@@ -213,30 +235,48 @@ const selectFile = async (startDir: string, origin?: string) => {
         // Relative path to workspace: begin with ./ or .\
         if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
             const filenameFB = path.join(workspace.rootPath, fileName)
+            if (fs.existsSync(filenameFB)) {
+                try {
+                    const stats = (await fsStat(filenameFB));
+                    const isFolder = stats.isDirectory();
+                    if (isFolder) {
+                        spawnExplorer("folder", filenameFB);
+                        return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
+                    } else {
+                        spawnExplorer("file", filenameFB);
+                        return Uri.file(filenameFB);
+                    }
+                } catch (error) {
+                    return selectFile(path.resolve(path.dirname(filenameFB)), path.dirname(filenameFB) + path.sep);
+                }
+            } else {
+                return filenameFB ? Uri.file(filenameFB).with({
+                    scheme: 'untitled'
+                }) : undefined;
+            }
+        }
+
+        // Relative path to current open file, may overide by abs path above!
+        const filenameFB = path.join(startDir, fileName)
+        if (fs.existsSync(filenameFB)) {
             try {
                 const stats = (await fsStat(filenameFB));
                 const isFolder = stats.isDirectory();
                 if (isFolder) {
                     spawnExplorer("folder", filenameFB);
+                    return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
                 } else {
                     spawnExplorer("file", filenameFB);
+                    return Uri.file(filenameFB);
                 }
-            } catch (error) {}
-            return Uri.file(filenameFB);
-        }
-
-        // Relative path to current open file, may overide by abs path above!
-        const filenameFB = path.join(startDir, fileName)
-        try {
-            const stats = (await fsStat(filenameFB));
-            const isFolder = stats.isDirectory();
-            if (isFolder) {
-                spawnExplorer("folder", filenameFB);
-            } else {
-                spawnExplorer("file", filenameFB);
+            } catch (error) {
+                return selectFile(path.resolve(path.dirname(filenameFB)), path.dirname(filenameFB) + path.sep);
             }
-        } catch (error) {}
-        return Uri.file(filenameFB);
+        } else {
+            return filenameFB ? Uri.file(filenameFB).with({
+                scheme: 'untitled'
+            }) : undefined;
+        }
     }
 
     return selection.path;
