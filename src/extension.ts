@@ -8,6 +8,7 @@ import { commands, window, ExtensionContext, workspace, Uri } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import {denodeify} from 'q';
+import {spawn} from 'child_process';
 
 interface QuickPickItem { // Add props to QPI without TS complaining.
     label: string,
@@ -21,7 +22,8 @@ const fsStat = denodeify(fs.stat);
 const ignoreExtensions: string[] = ['.png', '.jpg', '.gif']; // todo: use contributes configuration endpoint
 const cmd = {
     newFile: '$(plus) New file',
-    moveUp: '$(file-directory) ../'
+    moveUp: '$(file-directory) ../',
+    openExt: "$(file-directory) ..."
 };
 
 const onlyAllowed = f => ignoreExtensions.indexOf(`${path.extname(f.path)}`) === -1;
@@ -75,12 +77,15 @@ const selectFile = async (startDir: string, origin?: string) => {
         }, {
             label: cmd.moveUp,
             description: `move up a folder`
+        }, {
+            label: cmd.openExt,
+            description: `with external`
         }
     ];
 
     const selection: any = await window.showQuickPick([
         ...cmds, ...items.filter(onlyAllowed)
-    ]);
+    ], {ignoreFocusOut:true});
 
     if (selection === undefined) {
         return;
@@ -96,18 +101,31 @@ const selectFile = async (startDir: string, origin?: string) => {
             prompt: 'Enter the name of the new file'
         });
 
-        if (fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
-            return Uri.file(fileName).with({
-                scheme: 'untitled'
-            });
+        // Absolute path
+        if (fileName !== undefined && fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
+            if (fs.existsSync(fileName)) {
+                const stats = (await fsStat(fileName));
+                const isFolder = stats.isDirectory();
+                if (isFolder) {
+                    return selectFile(path.resolve(fileName), fileName + path.sep);
+                } else {
+                    return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
+                }
+            } else {                
+                return Uri.file(fileName).with({
+                    scheme: 'untitled'
+                });
+            }
         }
 
+        // Relative path to workspace: begin with ./ or .\
         if (fileName.match(/^\.[\\/]/g)) {
             return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
                 scheme: 'untitled'
             }) : undefined;
         }
 
+        // Relative path to current open file, may overide by abs path above!
         return fileName ? Uri.file(path.join(startDir, fileName)).with({
             scheme: 'untitled'
         }) : undefined;
@@ -116,6 +134,59 @@ const selectFile = async (startDir: string, origin?: string) => {
     // Move up one folder
     if (selection.label === cmd.moveUp) {
         return selectFile(path.resolve(startDir, '..'), origin + '..' + path.sep);
+    }
+
+    // Open external browser with input path
+    if (selection.label === cmd.openExt) {
+        const fileName = await window.showInputBox({
+            prompt: 'Enter the name of the open file'
+        });
+
+        // Absolute path
+        if (fileName !== undefined && fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
+            if (fs.existsSync(fileName)) {
+                try {
+                    const stats = (await fsStat(fileName));
+                    const isFolder = stats.isDirectory();
+                    if (isFolder) {
+                        spawn('explorer.exe', [fileName]);
+                        return selectFile(path.resolve(fileName), fileName + path.sep);
+                    } else {
+                        spawn('explorer.exe', ["/select,"+fileName]);
+                        return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
+                    }
+                } catch (error) {
+                    return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
+                }
+            } else {
+                // try in 10 level folder up if exist
+                let dirExistLevel = path.dirname(fileName)
+                for (let index = 0; index < 10; index++) {
+                    if (fs.existsSync(dirExistLevel)) {
+                        spawn('explorer.exe', [dirExistLevel]);
+                        break;
+                    }
+                    dirExistLevel = path.dirname(dirExistLevel)
+                };
+                return Uri.file(fileName).with({
+                    scheme: 'untitled'
+                });
+            }
+        }
+        
+        // Relative path to workspace: begin with ./ or .\
+        if (fileName.match(/^\.[\\/]/g)) {
+            spawn('explorer.exe', [path.join(workspace.rootPath, fileName)]);
+            return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
+                scheme: 'untitled'
+            }) : undefined;
+        }
+
+        // Relative path to current open file, may overide by abs path above!
+        spawn('explorer.exe', [path.join(startDir, fileName)]);
+        return fileName ? Uri.file(path.join(startDir, fileName)).with({
+            scheme: 'untitled'
+        }) : undefined;
     }
 
     return selection.path;
