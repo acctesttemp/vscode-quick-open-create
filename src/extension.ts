@@ -4,11 +4,11 @@
  * This is my first VSCode extension. Happy for any feedback
  * This is my first time using TypeScript. Again, happy for any feedback.
  */
-import { commands, window, ExtensionContext, workspace, Uri } from 'vscode';
+import { commands, window, ExtensionContext, workspace, Uri, DocumentHighlight } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import {denodeify} from 'q';
-import {spawn} from 'child_process';
+import { exec } from 'child_process';
 
 interface QuickPickItem { // Add props to QPI without TS complaining.
     label: string,
@@ -27,6 +27,30 @@ const cmd = {
 };
 
 const onlyAllowed = f => ignoreExtensions.indexOf(`${path.extname(f.path)}`) === -1;
+
+// Only run in WindowOS, => function style not working :(
+function spawnExplorer ( spawnType:string , fileName:string) {
+    if (process.platform === "win32") {
+        // Windows
+        const cfg = workspace.getConfiguration("TotalCommander");
+        if (cfg.path) {
+            // spawn(cfg.path, ["/OPEN", fileName]);
+            exec("\"" + cfg.path + "\" /OPEN " + fileName);
+        } else {
+            if (spawnType === "folder") {
+                // spawn('explorer.exe', [fileName]);
+                exec('explorer.exe ' + fileName);
+            } else if (spawnType === "file") {
+                // spawn('explorer.exe', ["/select,\""+fileName+"\""]);
+                exec('explorer.exe ' + "/select,\""+fileName+"\"");
+            }
+        }
+    } else if (process.platform === "darwin"){
+        // MacOS 
+    } else {
+        //Others OS
+    }
+}
 
 const selectFile = async (startDir: string, origin?: string) => {
     if (!origin) { 
@@ -79,7 +103,7 @@ const selectFile = async (startDir: string, origin?: string) => {
             description: `move up a folder`
         }, {
             label: cmd.openExt,
-            description: `with external`
+            description: `open with external`
         }
     ];
 
@@ -109,7 +133,8 @@ const selectFile = async (startDir: string, origin?: string) => {
                 if (isFolder) {
                     return selectFile(path.resolve(fileName), fileName + path.sep);
                 } else {
-                    return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
+                    // return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
+                    return Uri.file(fileName)
                 }
             } else {                
                 return Uri.file(fileName).with({
@@ -119,7 +144,7 @@ const selectFile = async (startDir: string, origin?: string) => {
         }
 
         // Relative path to workspace: begin with ./ or .\
-        if (fileName.match(/^\.[\\/]/g)) {
+        if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
             return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
                 scheme: 'untitled'
             }) : undefined;
@@ -128,8 +153,11 @@ const selectFile = async (startDir: string, origin?: string) => {
         // Shortcut for open current folder of active open text file.
         if (fileName === "") {
             // Sometime runtime in welcome screen or emty editor, still pass and open as "" filename ['MyComputer'] showup.
-            if (window.activeTextEditor)
-                spawn('explorer.exe', ["/select,"+window.activeTextEditor.document.fileName]);
+            if (window.activeTextEditor) {
+                let fName = "/select,\""+window.activeTextEditor.document.fileName+"\"";
+                spawnExplorer("file", window.activeTextEditor.document.fileName);
+            }
+                
         }
         // Relative path to current open file, may overide by abs path above!
         return fileName ? Uri.file(path.join(startDir, fileName)).with({
@@ -155,10 +183,10 @@ const selectFile = async (startDir: string, origin?: string) => {
                     const stats = (await fsStat(fileName));
                     const isFolder = stats.isDirectory();
                     if (isFolder) {
-                        spawn('explorer.exe', [fileName]);
+                        spawnExplorer( "folder", fileName);
                         return selectFile(path.resolve(fileName), fileName + path.sep);
                     } else {
-                        spawn('explorer.exe', ["/select,"+fileName]);
+                        spawnExplorer( "file", fileName);
                         return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
                     }
                 } catch (error) {
@@ -169,7 +197,7 @@ const selectFile = async (startDir: string, origin?: string) => {
                 let dirExistLevel = path.dirname(fileName)
                 while (true) {
                     if (fs.existsSync(dirExistLevel)) {
-                        spawn('explorer.exe', [dirExistLevel]);
+                        spawnExplorer("folder", dirExistLevel);
                         break;
                     }
                     const upDirExistLevel = path.dirname(dirExistLevel);
@@ -183,15 +211,15 @@ const selectFile = async (startDir: string, origin?: string) => {
         }
         
         // Relative path to workspace: begin with ./ or .\
-        if (fileName.match(/^\.[\\/]/g)) {
-            spawn('explorer.exe', [path.join(workspace.rootPath, fileName)]);
+        if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
+            spawnExplorer("folder", path.join(workspace.rootPath, fileName));
             return fileName ? Uri.file(path.join(workspace.rootPath, fileName)).with({
                 scheme: 'untitled'
             }) : undefined;
         }
 
         // Relative path to current open file, may overide by abs path above!
-        spawn('explorer.exe', [path.join(startDir, fileName)]);
+        spawnExplorer("folder", path.join(startDir, fileName));
         return fileName ? Uri.file(path.join(startDir, fileName)).with({
             scheme: 'untitled'
         }) : undefined;
