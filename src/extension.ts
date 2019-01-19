@@ -127,6 +127,7 @@ const selectFile = async (startDir: string, origin?: string) => {
 
         // Shortcut for open current folder of active open text file.
         if (fileName === "") {
+            // Sometime runtime in welcome screen or emty editor, still pass and open as "" filename ['MyComputer'] showup.
             if (window.activeTextEditor)
                 spawn('explorer.exe', ["/select,"+window.activeTextEditor.document.fileName]);
         }
@@ -173,7 +174,7 @@ const selectFile = async (startDir: string, origin?: string) => {
                     }
                     const upDirExistLevel = path.dirname(dirExistLevel);
                     if ( upDirExistLevel === dirExistLevel) { break;}
-                    dirExistLevel =upDirExistLevel;
+                    dirExistLevel = upDirExistLevel;
                 };
                 return Uri.file(fileName).with({
                     scheme: 'untitled'
