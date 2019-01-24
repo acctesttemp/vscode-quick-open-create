@@ -35,7 +35,7 @@ function spawnExplorer ( spawnType:string , fileName:string) {
         const cfg = workspace.getConfiguration("TotalCommander");
         if (cfg.path) {
             // spawn(cfg.path, ["/OPEN", fileName]);
-            exec("\"" + cfg.path + "\" /OPEN " + fileName);
+            exec("\"" + cfg.path + "\" /OPEN " + fileName.replace(/[/]/g,'\\'));
         } else {
             if (spawnType === "folder") {
                 // spawn('explorer.exe', [fileName]);
