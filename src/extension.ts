@@ -39,10 +39,10 @@ function spawnExplorer ( spawnType:string , fileName:string) {
         } else {
             if (spawnType === "folder") {
                 // spawn('explorer.exe', [fileName]);
-                exec('explorer.exe ' + fileName);
+                exec('explorer.exe ' + fileName.replace(/[/]/g,'\\'));
             } else if (spawnType === "file") {
                 // spawn('explorer.exe', ["/select,\""+fileName+"\""]);
-                exec('explorer.exe ' + "/select,\""+fileName+"\"");
+                exec('explorer.exe ' + "/select,\""+fileName.replace(/[/]/g,'\\')+"\"");
             }
         }
     } else if (process.platform === "darwin"){
@@ -60,16 +60,6 @@ const selectFile = async (startDir: string, origin?: string) => {
 
     const contents: string[] = await readdir(startDir);
     const items: QuickPickItem[] = await Promise.all(contents.map(async f => {
-        // const filePath = path.join(startDir, f);
-        // const stats = (await fsStat(filePath));
-        // const isFolder = stats.isDirectory();
-        // const label = isFolder ? `$(file-directory) ${f}/` : `$(file-code) ${f}`;
-
-        // return {
-        //     label,
-        //     isFolder,
-        //     path: filePath
-        // };
         try {
             const filePath = path.join(startDir, f);
             const stats = (await fsStat(filePath));
@@ -97,7 +87,7 @@ const selectFile = async (startDir: string, origin?: string) => {
     const cmds: any[] = [
         {
             label: cmd.newFile,
-            description: `in ${path.normalize(origin)}`
+            description: `in ${path.normalize(startDir)}`
         }, {
             label: cmd.moveUp,
             description: `move up a folder`
@@ -108,8 +98,8 @@ const selectFile = async (startDir: string, origin?: string) => {
     ];
 
     const selection: any = await window.showQuickPick([
-        ...cmds, ...items.filter(onlyAllowed)
-    ], {ignoreFocusOut:true});
+        ...cmds, ...items.filter(onlyAllowed) 
+    ], { ignoreFocusOut: true });
 
     if (selection === undefined) {
         return;
@@ -122,21 +112,21 @@ const selectFile = async (startDir: string, origin?: string) => {
     // Create new File
     if (selection.label === cmd.newFile) {
         const fileName = await window.showInputBox({
-            prompt: 'Enter the name of the new file'
+            prompt: 'Enter the name of the new file',
+            ignoreFocusOut: true
         });
 
         // Absolute path
-        if (fileName !== undefined && fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
-            if (fs.existsSync(fileName)) {
+        if (fileName !== undefined && fileName.match(/^([a-zA-Z]:[\\/]?|\\\\\w|\/)/g)) {
+            try {
                 const stats = (await fsStat(fileName));
                 const isFolder = stats.isDirectory();
                 if (isFolder) {
-                    return selectFile(path.resolve(fileName), fileName + path.sep);
+                    return selectFile(path.resolve(fileName + path.sep), fileName + path.sep);
                 } else {
-                    // return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
                     return Uri.file(fileName);
                 }
-            } else {                
+            } catch (error) {
                 return Uri.file(fileName).with({
                     scheme: 'untitled'
                 });
@@ -146,15 +136,15 @@ const selectFile = async (startDir: string, origin?: string) => {
         // Relative path to workspace: begin with ./ or .\
         if (fileName !== undefined && fileName.match(/^\.[\\/]/g)) {
             const filenameFB = path.join(workspace.rootPath, fileName)
-            if (fs.existsSync(filenameFB)) {
+            try {
                 const stats = (await fsStat(filenameFB));
                 const isFolder = stats.isDirectory();
                 if (isFolder) {
-                    return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
+                    return selectFile(path.resolve(filenameFB + path.sep), filenameFB + path.sep);
                 } else {
                     return Uri.file(filenameFB);
                 }
-            } else {
+            } catch (error) {
                 return filenameFB ? Uri.file(filenameFB).with({
                     scheme: 'untitled'
                 }) : undefined;
@@ -167,19 +157,22 @@ const selectFile = async (startDir: string, origin?: string) => {
             if (window.activeTextEditor) {
                 spawnExplorer("file", window.activeTextEditor.document.fileName);
                 return undefined;
+            } else {
+                spawnExplorer("folder", startDir);
+                return undefined;
             }
-        } else {
+        } else { //fileName!== ""
             // Relative path to current open file, may overide by abs path above!
             const filenameFB = path.join(startDir, fileName)
-            if (fs.existsSync(filenameFB)) {
+            try {
                 const stats = (await fsStat(filenameFB));
                 const isFolder = stats.isDirectory();
                 if (isFolder) {
-                    return selectFile(path.resolve(filenameFB), filenameFB + path.sep);
+                    return selectFile(path.resolve(filenameFB + path.sep), filenameFB + path.sep);
                 } else {
                     return Uri.file(filenameFB);
                 }
-            } else {
+            } catch (error) {
                 return filenameFB ? Uri.file(filenameFB).with({
                     scheme: 'untitled'
                 }) : undefined;
@@ -195,30 +188,32 @@ const selectFile = async (startDir: string, origin?: string) => {
     // Open external browser with input path
     if (selection.label === cmd.openExt) {
         const fileName = await window.showInputBox({
-            prompt: 'Enter the name of the open file'
+            prompt: 'Enter the path of the open file',
+            ignoreFocusOut : true
         });
 
         // Absolute path
         if (fileName !== undefined && fileName.match(/^([a-zA-Z]:[\\/]|\\\\\w|\/)/g)) {
-            if (fs.existsSync(fileName)) {
-                try {
-                    const stats = (await fsStat(fileName));
-                    const isFolder = stats.isDirectory();
-                    if (isFolder) {
-                        spawnExplorer( "folder", fileName);
-                        return selectFile(path.resolve(fileName), fileName + path.sep);
-                    } else {
-                        spawnExplorer( "file", fileName);
-                        return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
-                    }
-                } catch (error) {
+            try {
+                const stats = (await fsStat(fileName));
+                const isFolder = stats.isDirectory();
+                if (isFolder) {
+                    spawnExplorer( "folder", path.resolve(fileName));
+                    return selectFile(path.resolve(fileName), fileName + path.sep);
+                } else {
+                    spawnExplorer( "file", path.resolve(fileName));
+                    const doc = await workspace.openTextDocument(Uri.file(fileName));
                     return selectFile(path.resolve(path.dirname(fileName)), path.dirname(fileName) + path.sep);
                 }
-            } else {
+            } catch (error) {
                 // try folder up if exist
-                let dirExistLevel = path.dirname(fileName)
+                let dirExistLevel = fileName
                 while (true) {
                     if (fs.existsSync(dirExistLevel)) {
+                        spawnExplorer("folder", path.resolve(dirExistLevel));
+                        break;
+                    } else if (dirExistLevel.split(/[\\/]/g).filter(Boolean).length == 1) {
+                         // Almost this is for dns or ip direct connect with one entry address
                         spawnExplorer("folder", dirExistLevel);
                         break;
                     }
@@ -226,9 +221,7 @@ const selectFile = async (startDir: string, origin?: string) => {
                     if ( upDirExistLevel === dirExistLevel) { break;}
                     dirExistLevel = upDirExistLevel;
                 };
-                return Uri.file(fileName).with({
-                    scheme: 'untitled'
-                });
+                return selectFile(path.resolve(path.dirname(dirExistLevel)), path.dirname(dirExistLevel) + path.sep);
             }
         }
         
@@ -284,12 +277,7 @@ const selectFile = async (startDir: string, origin?: string) => {
 
 export function activate(context: ExtensionContext) {
     let disposable = commands.registerCommand('quickOpenCreate.open', async () => {
-        // if (!window.activeTextEditor) {
-        //     return;  // no file open
-        // }
-
         try {
-            // const currentDir = path.dirname(window.activeTextEditor.document.fileName);
             let currentDir = workspace.rootPath;
             if (window.activeTextEditor){
                 currentDir = path.dirname(window.activeTextEditor.document.fileName);
