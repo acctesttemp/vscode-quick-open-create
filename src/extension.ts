@@ -279,10 +279,18 @@ export function activate(context: ExtensionContext) {
     let disposable = commands.registerCommand('quickOpenCreate.open', async () => {
         try {
             let currentDir = "/";
-            if (workspace.rootPath !== undefined && window.activeTextEditor) {
+            if (workspace.rootPath !== undefined){
+                currentDir = workspace.rootPath;
+            }
+            if (window.activeTextEditor) {
                 currentDir = path.dirname(window.activeTextEditor.document.fileName);
-                if (currentDir === "."){
+            }
+            // Sometime activeTextEditor is relative path ? ./abcd.py
+            if (currentDir === "."){
+                if (workspace.rootPath !== undefined){
                     currentDir = workspace.rootPath;
+                } else {
+                    currentDir = "/";
                 }
             }
             
